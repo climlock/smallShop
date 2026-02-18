@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>products</title>
+</head>
+<body>
+<h1>Hello, <span id="username">...</span></h1>
+
+<div id="authButtons"></div>
+
+<script>
+    const usernameSpan = document.getElementById("username");
+    const authButtons = document.getElementById("authButtons");
+
+    async function loadUser() {
+        const token = localStorage.getItem("accessToken");
+
+        if (!token) {
+            showGuestButtons();
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/me", {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (!response.ok) {
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                showGuestButtons();
+                return;
+            }
+
+            const data = await response.json();
+            usernameSpan.innerText = data.username;
+            showLogoutButton();
+
+        } catch (e) {
+            showGuestButtons();
+        }
+    }
+
+    function showGuestButtons() {
+        usernameSpan.innerText = "Guest";
+        authButtons.innerHTML = `
+            <a href="/login"><button>Login</button></a>
+            <a href="/registration"><button>Register</button></a>
+        `;
+    }
+
+    function showLogoutButton() {
+        authButtons.innerHTML = `
+            <button onclick="logout()">Logout</button>
+        `;
+    }
+
+    function logout() {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.reload();
+    }
+
+    loadUser();
+</script>
+</body>
+</html>

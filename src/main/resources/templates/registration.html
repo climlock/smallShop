@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en"xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration</title>
+</head>
+<body>
+<h2>Register</h2>
+
+<form id="registerForm">
+    <input id="username" placeholder="username" required />
+    <input id="password" placeholder="password" type="password" required />
+    <button type="submit">Create account</button>
+</form>
+
+<p id="msg"></p>
+
+<script>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const body = {
+            username: document.getElementById("username").value,
+            name: document.getElementById("username").value,
+            password: document.getElementById("password").value
+        };
+
+        const res = await fetch("/auth/registration", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            document.getElementById("msg").innerText = "Registration failed";
+            return;
+        }
+
+        document.getElementById("msg").innerText = "OK! Now login.";
+        setTimeout(() => window.location.href = "/login", 700);
+    });
+</script>
+</body>
+</html>
