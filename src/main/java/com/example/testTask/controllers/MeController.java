@@ -13,8 +13,20 @@ public class MeController {
 
     @GetMapping("/me")
     public Map<String, Object> me(Authentication auth) {
+        var roles = auth.getAuthorities().stream()
+                .map(a -> a.getAuthority().replace("ROLE_", "")) // ADMIN / USER
+                .toList();
+
         return Map.of(
-                "username", auth.getName()
+                "username", auth.getName(),
+                "roles", roles
         );
+//        return Map.of(
+//                "username", auth.getName(),
+//                "role", auth.getAuthorities()
+//                        .stream()
+//                        .map(a -> a.getAuthority())
+//                        .toList()
+//        );
     }
 }

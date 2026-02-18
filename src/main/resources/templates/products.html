@@ -5,66 +5,98 @@
     <title>products</title>
 </head>
 <body>
-<h1>Hello, <span id="username">...</span></h1>
 
-<div id="authButtons"></div>
+<h1>Hello, <span id="username">Guest</span></h1>
+
+<div id="guestActions" style="display:none;">
+    <a href="/login">Login</a>
+    <a href="/registration">Register</a>
+</div>
+
+<div id="userActions" style="display:none;">
+    <button id="logoutBtn">Logout</button>
+</div>
+
+<div id="adminActions" style="display:none; margin-top: 10px;">
+    <a href="/product/new"><button>Add product</button></a>
+</div>
+
+<hr/>
+
+<h2>Products</h2>
+
+<div th:if="${#lists.isEmpty(products)}">
+    <p>No products yet</p>
+</div>
+
+<div th:each="p : ${products}" style="margin-bottom: 20px;">
+    <div>
+        <img th:if="${p.previewImageId != null}"
+             th:src="@{/api/images/{id}(id=${p.previewImageId})}"
+             alt="preview"
+             width="180"/>
+
+        <div>
+            <b th:text="${p.title}">Title</b>
+        </div>
+
+        <div>
+            Price: <span th:text="${p.price}">0</span>
+        </div>
+    </div>
+    <hr/>
+</div>
 
 <script>
-    const usernameSpan = document.getElementById("username");
-    const authButtons = document.getElementById("authButtons");
+    async function loadMe(token) {
+        const res = await fetch("/api/me", {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    }
 
-    async function loadUser() {
+    function showGuest() {
+        document.getElementById("username").innerText = "Guest";
+        document.getElementById("guestActions").style.display = "block";
+        document.getElementById("userActions").style.display = "none";
+        document.getElementById("adminActions").style.display = "none";
+    }
+
+    function showUser(me) {
+        document.getElementById("username").innerText = me.username;
+        document.getElementById("guestActions").style.display = "none";
+        document.getElementById("userActions").style.display = "block";
+
+        const roles = me.roles || [];
+        const isAdmin = roles.includes("ADMIN");
+        document.getElementById("adminActions").style.display = isAdmin ? "block" : "none";
+    }
+
+    (async () => {
         const token = localStorage.getItem("accessToken");
-
         if (!token) {
-            showGuestButtons();
+            showGuest();
             return;
         }
 
-        try {
-            const response = await fetch("/api/me", {
-                headers: {
-                    "Authorization": "Bearer " + token
-                }
-            });
-
-            if (!response.ok) {
-                localStorage.removeItem("accessToken");
-                localStorage.removeItem("refreshToken");
-                showGuestButtons();
-                return;
-            }
-
-            const data = await response.json();
-            usernameSpan.innerText = data.username;
-            showLogoutButton();
-
-        } catch (e) {
-            showGuestButtons();
+        const me = await loadMe(token);
+        if (!me) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            showGuest();
+            return;
         }
-    }
 
-    function showGuestButtons() {
-        usernameSpan.innerText = "Guest";
-        authButtons.innerHTML = `
-            <a href="/login"><button>Login</button></a>
-            <a href="/registration"><button>Register</button></a>
-        `;
-    }
+        showUser(me);
+    })();
 
-    function showLogoutButton() {
-        authButtons.innerHTML = `
-            <button onclick="logout()">Logout</button>
-        `;
-    }
-
-    function logout() {
+    document.getElementById("logoutBtn").addEventListener("click", () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        window.location.reload();
-    }
-
-    loadUser();
+        window.location.href = "/";
+    });
 </script>
+
 </body>
 </html>

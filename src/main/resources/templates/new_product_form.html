@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add product</title>
+</head>
+<body>
+
+<h2>Add product</h2>
+
+<p id="msg"></p>
+
+<form id="productForm">
+    <input id="title" placeholder="title" required />
+    <br/>
+
+    <input id="description" placeholder="description" />
+    <br/>
+
+    <input id="price" type="number" step="0.01" placeholder="price" required />
+    <br/>
+
+    <input id="images" type="file" accept="image/*" multiple />
+    <div id="preview"></div>
+
+    <button type="submit">Save</button>
+</form>
+
+<br/>
+<a href="/">Back to products</a>
+
+
+
+<script>
+    let selectedFiles = [];
+
+    const imagesInput = document.getElementById("images");
+    const previewDiv = document.getElementById("preview");
+    const msg = document.getElementById("msg");
+
+    function renderList() {
+        previewDiv.innerHTML = "";
+
+        if (selectedFiles.length === 0) {
+            previewDiv.innerHTML = "<i>No images selected</i>";
+            return;
+        }
+
+        selectedFiles.forEach((f, idx) => {
+            const row = document.createElement("div");
+            row.style.marginBottom = "6px";
+
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "preview";
+            radio.checked = idx === previewIndex;
+            radio.addEventListener("change", () => previewIndex = idx);
+
+            const name = document.createElement("span");
+            name.innerText = " " + f.name + " (" + Math.round(f.size/1024) + " KB) ";
+
+            const del = document.createElement("button");
+            del.type = "button";
+            del.innerText = "remove";
+            del.addEventListener("click", () => {
+                selectedFiles.splice(idx, 1);
+                if (previewIndex >= selectedFiles.length) previewIndex = 0;
+                renderList();
+            });
+
+            row.appendChild(radio);
+            row.appendChild(name);
+            row.appendChild(del);
+            previewDiv.appendChild(row);
+        });
+
+        const hint = document.createElement("div");
+        hint.style.marginTop = "8px";
+        hint.innerHTML = "<small>Select radio button to choose preview image</small>";
+        previewDiv.appendChild(hint);
+    }
+
+    imagesInput.addEventListener("change", () => {
+        for (const f of imagesInput.files) {
+            const exists = selectedFiles.some(x => x.name === f.name && x.size === f.size);
+            if (!exists) selectedFiles.push(f);
+        }
+        imagesInput.value = "";
+        renderList();
+    });
+
+    renderList();
+
+    document.getElementById("productForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const token = localStorage.getItem("accessToken");
+        if (!token) { window.location.href = "/login"; return; }
+
+        if (selectedFiles.length === 0) {
+            msg.innerText = "Add at least one image";
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append("title", document.getElementById("title").value);
+        fd.append("description", document.getElementById("description").value);
+        fd.append("price", document.getElementById("price").value);
+
+        selectedFiles.forEach(f => fd.append("images", f));
+
+        fd.append("previewIndex", String(previewIndex));
+
+        const res = await fetch("/api/products", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token },
+            body: fd
+        });
+
+        if (!res.ok) {
+            msg.innerText = "Error: " + await res.text();
+            return;
+        }
+
+        msg.innerText = "Saved!";
+        setTimeout(() => window.location.href = "/", 600);
+    });
+</script>
+
+
+
+</body>
+</html>

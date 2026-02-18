@@ -60,12 +60,7 @@ public class UserServiceImpl implements UserService {
         User savedUser = userRepository.save(user);
         log.info("Saved user: {}", savedUser);
 
-        return new UserDto(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getName(),
-                savedUser.getRole()
-        );
+        return mapToUserDto(savedUser);
 
     }
 

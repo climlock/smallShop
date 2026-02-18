@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "productImage")
+@Table(name = "product_image")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,6 +35,10 @@ public class ProductImage {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Product product;
+
+    @Lob
+    @Column(name = "data", columnDefinition = "LONGBLOB")
+    private byte[] data;
 
 
 }
