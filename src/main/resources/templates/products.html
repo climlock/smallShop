@@ -29,21 +29,18 @@
     <p>No products yet</p>
 </div>
 
-<div th:each="p : ${products}" style="margin-bottom: 20px;">
-    <div>
-        <img th:if="${p.previewImageId != null}"
-             th:src="@{/api/images/{id}(id=${p.previewImageId})}"
-             alt="preview"
-             width="180"/>
-
+<div th:each="p : ${products}">
+    <a th:href="@{'/product/' + ${p.id}}">
         <div>
-            <b th:text="${p.title}">Title</b>
+            <img th:if="${p.previewImageId != null}"
+                 th:src="@{'/api/images/' + ${p.previewImageId}}"
+                 style="width:120px;height:auto;" />
+            <div>
+                <b th:text="${p.title}">Title</b>
+                <span th:text="${p.price}">0</span>
+            </div>
         </div>
-
-        <div>
-            Price: <span th:text="${p.price}">0</span>
-        </div>
-    </div>
+    </a>
     <hr/>
 </div>
 

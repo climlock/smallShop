@@ -1,0 +1,157 @@
+-- ==========================================
+-- Migration: prod schema update (no data loss)
+-- Compatible: MySQL 8+
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  user_name VARCHAR(100) NOT NULL,
+  name VARCHAR(255) NULL,
+  password VARCHAR(1000) NOT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_users_user_name (user_name)
+) ENGINE=InnoDB;
+
+SET @col_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'enabled'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE users ADD COLUMN enabled TINYINT(1) NOT NULL DEFAULT 1',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @pwd_len := (
+  SELECT CHARACTER_MAXIMUM_LENGTH
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'password'
+);
+SET @sql := IF(@pwd_len IS NOT NULL AND @pwd_len < 1000,
+  'ALTER TABLE users MODIFY COLUMN password VARCHAR(1000) NOT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS user_role (
+  user_id BIGINT NOT NULL,
+  role VARCHAR(50) NOT NULL,
+  KEY idx_user_role_user_id (user_id),
+  CONSTRAINT fk_user_role_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+SET @fk_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.REFERENTIAL_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_role'
+    AND CONSTRAINT_NAME = 'fk_user_role_user'
+);
+SET @sql := IF(@fk_exists = 0,
+  'ALTER TABLE user_role
+     ADD CONSTRAINT fk_user_role_user
+     FOREIGN KEY (user_id) REFERENCES users(id)
+     ON DELETE CASCADE',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS product (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  title VARCHAR(100) NULL,
+  description TEXT NULL,
+  price DOUBLE NULL,
+  preview_image_id BIGINT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+SET @col_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'product'
+    AND COLUMN_NAME = 'preview_image_id'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE product ADD COLUMN preview_image_id BIGINT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+CREATE TABLE IF NOT EXISTS product_image (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NULL,
+  originalPrivateName VARCHAR(255) NULL,
+  size BIGINT NULL,
+  contentType VARCHAR(255) NULL,
+  isPreviewImage TINYINT(1) NOT NULL DEFAULT 0,
+  product_id BIGINT NULL,
+  data LONGBLOB NULL,
+  PRIMARY KEY (id),
+  KEY idx_product_image_product_id (product_id)
+) ENGINE=InnoDB;
+
+SET @col_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'product_image'
+    AND COLUMN_NAME = 'product_id'
+);
+SET @sql := IF(@col_exists = 0,
+  'ALTER TABLE product_image ADD COLUMN product_id BIGINT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @data_type := (
+  SELECT COLUMN_TYPE
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'product_image'
+    AND COLUMN_NAME = 'data'
+);
+SET @sql := IF(@data_type IS NOT NULL AND @data_type NOT LIKE '%longblob%',
+  'ALTER TABLE product_image MODIFY COLUMN data LONGBLOB',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @fk_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.REFERENTIAL_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'product_image'
+    AND CONSTRAINT_NAME = 'fk_product_image_product'
+);
+SET @sql := IF(@fk_exists = 0,
+  'ALTER TABLE product_image
+     ADD CONSTRAINT fk_product_image_product
+     FOREIGN KEY (product_id) REFERENCES product(id)
+     ON DELETE SET NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'users'
+    AND INDEX_NAME = 'uk_users_user_name'
+);
+SET @sql := IF(@idx_exists = 0,
+  'ALTER TABLE users ADD UNIQUE KEY uk_users_user_name (user_name)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT 'Migration completed successfully' AS status;

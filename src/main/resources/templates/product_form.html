@@ -2,9 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>add_product</title>
+    <title>Product</title>
 </head>
 <body>
+
+<a href="/">← Back</a>
+
+<h2 id="title">...</h2>
+<p><b>Price:</b> <span id="price">...</span></p>
+<p id="description"></p>
+
+<hr/>
+
+<img id="mainImg" src="" alt="product image" style="max-width: 420px; display:none;"/>
+
+<div id="thumbs" style="margin-top:10px;"></div>
+
+<p id="msg" style="color: red;"></p>
+
+<script>
+    function productIdFromUrl() {
+        const parts = window.location.pathname.split("/");
+        return parts[parts.length - 1];
+    }
+
+    function setMain(id) {
+        const main = document.getElementById("mainImg");
+        main.src = "/api/images/" + id;
+        main.style.display = "block";
+    }
+
+    function renderThumbs(ids) {
+        const thumbs = document.getElementById("thumbs");
+        thumbs.innerHTML = "";
+
+        ids.forEach((id, idx) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.style.marginRight = "6px";
+            btn.innerText = (idx === 0) ? "Preview" : ("Photo " + (idx+1));
+            btn.addEventListener("click", () => setMain(id));
+            thumbs.appendChild(btn);
+        });
+    }
+
+    (async () => {
+        const id = productIdFromUrl();
+
+        const res = await fetch("/api/products/" + id);
+        if (!res.ok) {
+            document.getElementById("msg").innerText = "Product not found";
+            return;
+        }
+
+        const p = await res.json();
+
+        document.getElementById("title").innerText = p.title;
+        document.getElementById("price").innerText = p.price;
+        document.getElementById("description").innerText = p.description || "";
+
+        const ids = p.imagesId || [];
+        if (ids.length === 0) {
+            document.getElementById("msg").innerText = "No images";
+            return;
+        }
+
+        setMain(ids[0]);
+        renderThumbs(ids);
+    })();
+</script>
 
 </body>
 </html>

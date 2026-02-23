@@ -1,4 +1,4 @@
-package com.example.testTask.controllers;
+package com.example.testTask.controllers.api;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;

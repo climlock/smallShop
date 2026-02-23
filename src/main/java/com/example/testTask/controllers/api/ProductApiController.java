@@ -1,8 +1,7 @@
-package com.example.testTask.controllers;
+package com.example.testTask.controllers.api;
 
 import com.example.testTask.dto.ProductCreateDto;
 import com.example.testTask.dto.ProductDto;
-import com.example.testTask.models.Product;
 import com.example.testTask.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,5 +27,10 @@ public class ProductApiController {
             @RequestParam(defaultValue = "0") int previewIndex
     ) {
         return productService.createProduct(new ProductCreateDto(title, description, price), images, previewIndex);
+    }
+
+    @GetMapping("/{id}")
+    public ProductDto getById(@PathVariable Long id) {
+        return productService.getProductById(id);
     }
 }

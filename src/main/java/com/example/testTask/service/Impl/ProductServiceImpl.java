@@ -48,7 +48,6 @@ public class ProductServiceImpl implements ProductService {
             img.setOriginalPrivateName(file.getOriginalFilename());
             img.setSize(file.getSize());
             img.setContentType(file.getContentType());
-            img.setPreviewImage(i == previewIndex);
             img.setProduct(savedProduct);
 
             try{
@@ -59,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
 
             imageRepository.save(img);
 
-            if (i == 0) {
+            if (i == previewIndex) {
                 savedProduct.setPreviewImageId(img.getId());
             }
         }
@@ -79,9 +78,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDto getProductById(long id) {
-        return productRepository.findById(id)
-                .map(this::mapToDto)
-                .orElse(null);
+        Product product = productRepository.findByIdWithImages(id).orElse(null);
+        return mapToDto(product);
     }
 
     @Override
@@ -90,12 +88,24 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private ProductDto mapToDto(Product savedProduct) {
+        List<ProductImage> images = savedProduct.getImages().stream()
+                .sorted((a, b) -> {
+                    if (a.isPreviewImage() && !b.isPreviewImage()) return -1;
+                    if (!a.isPreviewImage() && b.isPreviewImage()) return 1;
+                    if (a.getId() == null || b.getId() == null) return 0;
+                    return a.getId().compareTo(b.getId());
+                })
+                .toList();
+
+        List<Long> imgs = images.stream().map(ProductImage::getId).toList();
+
         return new ProductDto(
                 savedProduct.getId(),
                 savedProduct.getTitle(),
                 savedProduct.getDescription(),
                 savedProduct.getPrice(),
-                savedProduct.getPreviewImageId()
+                savedProduct.getPreviewImageId(),
+                imgs
         );
     }
 }
